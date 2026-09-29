@@ -1,0 +1,1 @@
+import{Module}from'@nestjs/common';import{ProvidersController}from'./providers.controller';import{PrismaService}from'../prisma/prisma.service';@Module({controllers:[ProvidersController],providers:[PrismaService]})export class ProvidersModule{}

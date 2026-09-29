@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: echogpt-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: echogpt
+      POSTGRES_PASSWORD: echogpt
+      POSTGRES_DB: echogpt
+    ports: ["5432:5432"]
+    volumes: [echogpt_pgdata:/var/lib/postgresql/data]
+volumes:
+  echogpt_pgdata:

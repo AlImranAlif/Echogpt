@@ -1,0 +1,115 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum RoleName { USER ADMIN }
+enum Plan { FREE PREMIUM }
+enum SubscriptionStatus { ACTIVE CANCELED EXPIRED }
+enum ProviderName { OPENAI ANTHROPIC GOOGLE }
+
+model Role {
+  id Int @id @default(autoincrement())
+  name RoleName @unique
+  users User[]
+}
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique
+  passwordHash String
+  name String?
+  isEmailVerified Boolean @default(false)
+  roleId Int
+  role Role @relation(fields:[roleId], references:[id])
+  sessions Session[]
+  subscriptions Subscription[]
+  providers AIProvider[]
+  conversations Conversation[]
+  searches WebSearch[]
+  usageLogs ApiUsageLog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([roleId])
+}
+model Session {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  refreshTokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  createdAt DateTime @default(now())
+  @@index([userId, revokedAt])
+}
+model Subscription {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  plan Plan @default(FREE)
+  status SubscriptionStatus @default(ACTIVE)
+  requestLimit Int @default(50)
+  usedRequests Int @default(0)
+  startsAt DateTime @default(now())
+  endsAt DateTime?
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, status])
+}
+model AIProvider {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  name ProviderName
+  model String
+  encryptedApiKey String
+  enabled Boolean @default(true)
+  isDefault Boolean @default(false)
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, name])
+  @@index([userId, enabled])
+}
+model Conversation {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  title String?
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  messages ChatMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, updatedAt])
+}
+model ChatMessage {
+  id String @id @default(uuid()) @db.Uuid
+  conversationId String @db.Uuid
+  role String
+  content String
+  provider ProviderName?
+  model String?
+  conversation Conversation @relation(fields:[conversationId], references:[id], onDelete:Cascade)
+  createdAt DateTime @default(now())
+  @@index([conversationId, createdAt])
+}
+model WebSearch {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  query String
+  results Json?
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+}
+model ApiUsageLog {
+  id String @id @default(uuid()) @db.Uuid
+  userId String? @db.Uuid
+  endpoint String
+  method String
+  provider ProviderName?
+  model String?
+  statusCode Int
+  latencyMs Int
+  tokens Int @default(0)
+  metadata Json?
+  user User? @relation(fields:[userId], references:[id], onDelete:SetNull)
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
